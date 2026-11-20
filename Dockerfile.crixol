@@ -1,0 +1,41 @@
+# Imagen de python-orders para los sandboxes de Crixol: la base de Crixol (code-server), Python con las
+# dependencias de la app y el código del reto dentro. La construye `make sandbox-images`.
+# El `Dockerfile` de esta carpeta es el normal de la app y Crixol no lo usa.
+FROM crixol/workbench-base:1.0
+
+USER root
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        python3 \
+        python3-venv \
+        python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /opt/crixol \
+    && chown -R coder:coder /opt/crixol
+
+USER coder
+WORKDIR /opt/crixol
+
+COPY --chown=coder:coder requirements.txt /opt/crixol/requirements.txt
+RUN python3 -m venv /opt/crixol/venv \
+    && /opt/crixol/venv/bin/pip install --no-cache-dir -r /opt/crixol/requirements.txt
+
+ENV VIRTUAL_ENV=/opt/crixol/venv
+ENV PATH="/opt/crixol/venv/bin:${PATH}"
+ENV PYTHONUNBUFFERED=1
+
+USER root
+RUN printf '%s\n' \
+        'export VIRTUAL_ENV="/opt/crixol/venv"' \
+        'export PATH="/opt/crixol/venv/bin:$PATH"' \
+        > /etc/profile.d/crixol-python.sh
+USER coder
+
+# El código del reto va dentro de la imagen: dos candidatos reciben exactamente lo mismo. Cada sandbox lo recibe
+# como una copia en su volumen, así que lo que edite el candidato nunca cambia la imagen.
+COPY --chown=coder:coder Proyecto /home/coder/workspace/Proyecto
+
+WORKDIR /home/coder
+EXPOSE 8080 8000

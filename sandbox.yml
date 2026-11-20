@@ -1,0 +1,35 @@
+version: 1
+
+name: python-orders
+description: API de pedidos con FastAPI y SQLite
+
+image:
+  tag: crixol/python-orders:1.0
+  build:
+    context: .
+    dockerfile: Dockerfile.crixol
+
+workspace:
+  workdir: /home/coder/workspace/Proyecto
+
+services:
+  - name: api
+    command:
+      - uvicorn
+      - main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --reload # el candidato ve sus cambios sin reiniciar nada
+    workdir: /home/coder/workspace/Proyecto
+    mounts: [workspace]
+    ports:
+      - name: api
+        container_port: 8000
+        public: true
+        docs: /docs
+        health:
+          type: http
+          path: /health
+    restart: on-failure
